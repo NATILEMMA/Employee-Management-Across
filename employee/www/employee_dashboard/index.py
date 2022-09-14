@@ -1,0 +1,114 @@
+from logging import exception
+import frappe
+from frappe.utils import getdate
+from frappe.utils import get_datetime
+import json
+import os, sys
+from datetime import datetime, date
+
+now = datetime.now()
+datetimeNow = now.strftime("%Y-%m-%d %H:%M :%s")
+
+
+def makeJson(data):
+        json_object = json.dumps(data)
+        print("(&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        print(json_object)
+        return json_object                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+
+def get_context(context):
+    
+        context.date = frappe.utils.getdate()
+        context.datetime = frappe.utils.get_datetime()
+
+        context.attenance_db_request = frappe.db.sql(""" SELECT status,  DATE_FORMAT(attendance_date, '%m-%d-%Y') FROM `tabAttendance` WHERE (employee_name='Natnael Lemma')""", as_dict=0)
+        print(context.attenance_db_request)
+       
+        context.attendane_data = makeJson(context.attenance_db_request)
+
+         ##############################data fetch for analysis############################
+        
+        uid= frappe.session.user    
+        email = frappe.db.get_value('User', {'username': uid}, ['email'])
+        employee = frappe.db.get_value('Employee', {'user_id': uid}, ['employee'])
+        context.employee_name = frappe.db.get_value('Employee', {'user_id': uid}, ['employee_name'])
+        company = frappe.db.get_value('Employee', {'user_id': uid}, ['company'])
+
+        Values  = {'email': email, 'date': context.date, 'employee': employee}
+
+        last_punch_db_response = frappe.db.sql("""
+        SELECT A.last_punch FROM `tabAttendance` AS A  WHERE (A.employee = %(employee)s)
+        AND (attendance_date=%(date)s);""",values=Values, as_dict=0)
+
+        attendance_name_db_response = frappe.db.sql("""
+        SELECT A.name FROM `tabAttendance` AS A  WHERE (A.employee = %(employee)s)
+        AND (attendance_date=%(date)s);""",values=Values, as_dict=0)
+
+        first_unpack = []
+        attendance_first = []
+        last_punch= 0
+        attendance_name = 0
+
+        def unpacker(data):
+            first_unpack = []
+            final_unpack = []
+
+            for item in  data:
+             first_unpack.append() 
+
+            for item in first_unpack:              # to unpack the array value from database 
+             final_unpack = item
+
+        for item in  last_punch_db_response:
+            first_unpack = item
+
+        for item in first_unpack:              # to unpack the array value from database 
+            last_punch = item
+        
+        for item in  attendance_name_db_response:
+            attendance_first= item
+
+        for item in attendance_first:        # to unpack the array value from database 
+            attendance_name = item
+
+        
+
+        context.Break = 0
+        context.punch_in = 0
+      #  context.morning_punch_out = 0
+      #  context.afternoon_punch_in = 0
+        context.punch_out = 0
+        context.total_work_time = 0
+
+        if(last_punch):
+            print("I am in ==context lastpunch 1")
+            print(attendance_name)
+            doc = frappe.get_doc('Attendance',attendance_name)
+            context.punch_in = doc.in_time
+            #context.morning_punch_out = doc.out_time_morning
+            #context.afternoon_punch_in = doc.in_time_afternoon
+            context.punch_out = doc.out_time
+           
+            print("this is morning punch in ")
+            print( context.punch_in)
+
+            context.Break = ""
+            try:
+            
+                if(context.punch_out):
+                    context.total_work_time = context.punch_out - (context.punch_in)
+                else:
+                    context.total_work_time = context.datetime - (context.punch_in)
+            except:
+                context.total_work_time = 0
+                
+
+        print (" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@hello this is datetime now")
+        print (datetimeNow)
+            
+
+         ##############################data fetch for analysis############################
+               
+        return context
+
+
