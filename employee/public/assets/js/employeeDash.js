@@ -2,24 +2,30 @@
 	let res;
 	let d;
 	let message;
-	const button = document.querySelector('#analyse_attendance');
-	let buttonEnabler = async()=>{
-		// post to API
-		
-			res = await $.ajax({
-				url: '/api/method/employee.api.checkAttendanceFilled',
-				method: 'POST',
-				headers: {
-					'X-Frappe-CSRF-Token': frappe.csrf_token
-				},
-			});
-			console.log(res.message)
-			if(!res.message){
-   				 button.disabled = true;
-		}	
-	}
-	buttonEnabler();	
 
+
+
+	function check_permission(){
+		let makecall = async()=>{
+			// post to API
+			
+				res = await $.ajax({
+					url: '/api/method/employee.api.check_permission',
+					method: 'POST',
+					headers: {
+						'X-Frappe-CSRF-Token': frappe.csrf_token
+					},
+				});
+				var response = res.message
+				
+				if (response["relocate"]){
+					alert(response["relocation_url"])
+					window.location.href = response["relocation_url"];	
+				}
+			}	
+		makecall();
+	}
+	check_permission();
 	function fill_attendance(value){
 		var myObj={status:value};
 

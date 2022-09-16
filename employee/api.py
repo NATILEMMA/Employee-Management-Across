@@ -3,6 +3,9 @@ import frappe
 from frappe.utils import getdate
 from frappe.utils import get_datetime
 from datetime import datetime
+from .permission_check import has_permission
+from frappe.utils import get_site_name
+
 
 VALID_RANGE_Longitude = 0.007
 
@@ -19,10 +22,14 @@ datetm = now.strftime("%Y-%m-%d %H:%M:%S")
 date = frappe.utils.getdate()
 
 
-uid= frappe.session.user    
+uid= frappe.session.user
+print(uid)
 email = frappe.db.get_value('User', {'username': uid}, ['email'])
 employee = frappe.db.get_value('Employee', {'user_id': uid}, ['employee'])
+
 company = frappe.db.get_value('Employee', {'user_id': uid}, ['company'])
+if(not company):
+    company = ""
 location_db_response = frappe.db.get_value('Company', {'company_name': company}, ['location'])
 NOT_IN_RANGE = "Not In Range!Get closer to the company : "+ company
 
@@ -42,9 +49,7 @@ def check_location_and_fill_attendance(**args):
         return fill_attendance_function(status)
     else:
         return NOT_IN_RANGE
-
-
-
+    
 @frappe.whitelist()
 def checkAttendanceFilled():
     now = datetime.now()
@@ -206,7 +211,7 @@ def fill_attendance_function(status):
     SELECT A.name FROM `tabAttendance` AS A, `tabEmployee`,`tabUser` WHERE (user_id=%(email)s) AND (attendance_date=%(date)s);
     """,values=Values, as_dict=0)
 
-    try: 
+    try:
         if (not len(data)):
             if(status == "Present"):
                 # create a new document
@@ -229,7 +234,7 @@ def fill_attendance_function(status):
             elif (status == "Absent"):
                 # create a new document
                 doc = frappe.get_doc({
-                     'doctype': 'Attendance',
+                        'doctype': 'Attendance',
                     'employee': employee,
                     'attendance_date': date,
                     'company': company,
@@ -265,5 +270,30 @@ def fill_attendance_function(status):
             else: 
                 return "Invalid Attendance"   
             return "New attendance created!"
+        
     except:
-       return "Attendance already exists! You already filled Attendance. contact the HR manager for further information. "     
+         return "Attendance already exists! You already filled Attendance. contact the HR manager for further information. "   
+
+@frappe.whitelist(allow_guest = True)
+def check_permission():
+    site_name = get_site_name(frappe.local.request.host)    
+    user= frappe.session.user
+    print("site name: ***********************************************************************************")  
+    print(site_name)
+    print("user: ***********************************************************************************")  
+    print(user == "Guest")
+    if(user == "Guest"):
+        relocate = True
+        relocation_url = "https://"+site_name+"/employee_dashboard/login.html"
+    else:
+        permission = has_permission("Attendance",raise_exception= False)
+        if(not permission):
+            permission = has_permission("Attendance",raise_exception= False)
+            relocate = True
+            relocation_url = "https://"+site_name+"/employee_dashboard/chart.html"
+        else:
+            relocate = False
+            relocation_url = None
+    response = {"relocate":relocate,"relocation_url":relocation_url}
+    return response
+    
